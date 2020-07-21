@@ -7,7 +7,7 @@
 nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL, ...)
 }
 \arguments{
-\item{keep_nn}{(default FALSE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required}
+\item{keep_nn}{(default TRUE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required}
 
 \item{repetitions}{(default 1) Repeat nnet several times with different random seeds and select the best run using nnet's minimum \emph{value}. This is useful because some random initialization of weights may lead to local minima.}
 
@@ -22,7 +22,7 @@ nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL, ...)
 }
 \value{
 list of: \itemize{
-  \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has two arguments:
+  \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has three arguments:
     \itemize{
       \item x: the input \strong{matrix} to be transformed
       \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the output layer, but in some cases better results could be obtained with use_sigmoid=FALSE.

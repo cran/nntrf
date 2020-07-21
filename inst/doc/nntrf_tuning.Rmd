@@ -1,0 +1,258 @@
+---
+title: "nntrf hyper-parameter tuning"
+author: "Ricardo Aler"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{nntrf hyper-parameter tuning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r}
+library(nntrf)
+library(mlr)
+library(mlrCPO)
+library(FNN)
+```
+
+# nntrf Hyper-parameter Tuning
+
+**nntrf** has several hyper-parameters which are important in order to obtain good results. Those are:
+
+- **size:** The number of hidden neurons
+- **maxit:** The number of iterations
+- **repetitions:** The number of training repetitions
+- **use_sigmoid:** Whether the transformation should use the sigmoid or not
+
+Machine learning pipelines usually contain two kinds of steps: pre-processing and classifier/regressor. Both kinds of steps contain hyper-parameters and they are optimized together. **nntrf** is a preprocessing step. The classifier method that will be used after preprocessing is KNN, whose main hyper-parameter is the number of neighbors (**k**). Hyper-parameter tuning could be programmed from scratch, but it is more efficient to use the procedures already available in machine learning packages such as [mlr](https://mlr.mlr-org.com/) or Caret. In this case, **mlr** will be used. Code to do that is described below.
+
+The next piece of code has nothing to do with **nntrf**. It just establishes that the doughnutRandRotated dataset is going to be used (with target variable "V11"), that grid search is going to be used for hyper-parameter tuning, that an external 3-fold crossvalidation is going to be used to evaluate models, while an inner 3-fold crossvalidation is going to be used for hyper-parameter tuning. 
+
+```{r}
+data("doughnutRandRotated")
+
+doughnut_task <- makeClassifTask(data = doughnutRandRotated, target = "V11")
+control_grid <- makeTuneControlGrid()
+inner_desc <- makeResampleDesc("CV", iter=3)
+outer_desc <-  makeResampleDesc("CV", iter=3)
+set.seed(1)
+outer_inst <- makeResampleInstance(outer_desc, doughnut_task)
+```
+
+A mlr subpakage, called mlrCPO, is going to be used to combine pre-processing and learning into a single pipeline. In order to do that, **nntrf** must be defined as a pipeline step, as follows. Basically, it defines **train** and **retrafo** methods. The former, trains the neural networks and stores the hidden layer weights, the latter applies the transformation on a dataset. **pSS** is used to define the main **nntrf** hyper-parameters.
+
+```{r}
+cpo_nntrf = makeCPO("nntrfCPO",  
+                       # Here, the hyper-parameters of nntrf are defined
+                       pSS(size: integer[1, ],
+                           repetitions = 1 : integer[1, ],
+                           maxit = 100 : integer[1, ],
+                           use_sigmoid = FALSE: logical),
+                       dataformat = "numeric",
+                       cpo.train = function(data, target, size, repetitions, maxit, use_sigmoid) {
+                         nnpo <- nntrf(repetitions=repetitions,
+                                       formula=target[[1]]~.,
+                                       data=data,
+                                       size=size, maxit=maxit, trace=FALSE)
+                       },
+                       cpo.retrafo = function(data, control, size, repetitions, maxit, use_sigmoid) {
+                       
+                         trf_x <- control$trf(x=data,use_sigmoid=use_sigmoid)
+                         trf_x
+                       })
+```
+
+Next, the pipeline of pre-processing + classifier method (KNN in this case) is defined.
+
+```{r}
+# knn is the machine learning method. The knn available in the FNN package is used
+knn_lrn <- makeLearner("classif.fnn")
+# Then, knn is combined with nntrf's preprocessing into a pipeline
+knn_nntrf <- cpo_nntrf() %>>% knn_lrn
+# Just in case, we fix the values of the hyper-parameters that we do not require to optimize
+# (not necessary, because they already have default values. Just to make their values explicit)
+knn_nntrf <- setHyperPars(knn_nntrf, nntrfCPO.repetitions=1, nntrfCPO.maxit=100, nntrfCPO.use_sigmoid=FALSE)
+
+# However, we are going to use 2 repetitions here, instead of 1 (the default):
+
+knn_nntrf <- setHyperPars(knn_nntrf, nntrfCPO.repetitions=2)
+
+```
+
+Next, the hyper-parameter space for the pipeline is defined. Only two hyper-parameters will be optimized: the number of KNN neighbors (k), from 1 to 7, and the number of hidden neurons (size), from 1 to 10. The remaining hyper-parameters are left to some default values.
+
+```{r}
+ps <- makeParamSet(makeDiscreteParam("k", values = 1:7),
+                   makeDiscreteParam("nntrfCPO.size", values = 1:10)
+)
+```
+
+Next, a mlr wrapper is used to give the **knn_nntrf** pipeline the ability to do hyper-parameter tuning.
+
+```{r}
+knn_nntrf_tune <- makeTuneWrapper(knn_nntrf, resampling = inner_desc, par.set = ps, 
+                                     control = control_grid, measures = list(acc), show.info = FALSE)
+```
+
+Finally, the complete process (3-fold hyper-parameter tuning) and 3-fold outer model evaluation is run. It takes some time. 
+
+```{r}
+set.seed(1)
+# Please, note that in order to save time, results have been precomputed
+if(file.exists("../inst/error_knn_nntrf_tune.rda")){load("../inst/error_knn_nntrf_tune.rda")} else {
+error_knn_nntrf_tune <- resample(knn_nntrf_tune, doughnut_task, outer_inst, 
+                                 measures = list(acc), 
+                                 extract = getTuneResult, show.info =  FALSE)
+#save(error_knn_nntrf_tune, file="../inst/error_knn_nntrf_tune.rda")
+}
+
+```
+
+Errors and optimal hyper-parameters are as follows (the 3-fold inner hyper-parameter tuning crossvalidation accuracy is also shown in **acc.test.mean** ).
+
+```{r}
+print(error_knn_nntrf_tune$extract)
+```
+
+And the final outer 3-fold crossvalition accuracy is displayed below. Please, note that this **acc.test.mean** corresponds to the outer 3-fold crossvalidation, while the **acc.test.mean** above, corresponds to the inner 3-fold crossvalidation accuracy (computed during hyper-parameter tuning).
+
+```{r}
+print(error_knn_nntrf_tune$aggr)
+```
+
+Although not required, mlr allows to display the results of the different hyper-parameter values, sorted by the **inner** 3-fold crossvalidation accuracy, from best to worse.
+
+```{r}
+library(dplyr)
+results_hyper <- generateHyperParsEffectData(error_knn_nntrf_tune)
+head(arrange(results_hyper$data, -acc.test.mean))
+```
+
+We can also check directly what would happen with only 4 neurons (and 7 neighbors), as suggested by the table above.
+
+```{r}
+knn_nntrf <- cpo_nntrf() %>>% makeLearner("classif.fnn")
+
+knn_nntrf <- setHyperPars(knn_nntrf, nntrfCPO.repetitions=2, nntrfCPO.maxit=100, nntrfCPO.use_sigmoid=FALSE, k=7, nntrfCPO.size=4)
+
+set.seed(1)
+# Please, note that in order to save time, results have been precomputed
+if(file.exists("../inst/error_knn_nntrf.rda")){load("../inst/error_knn_nntrf.rda")} else {
+error_knn_nntrf <- resample(knn_nntrf, doughnut_task, outer_inst, measures = list(acc), 
+                            show.info =  FALSE)
+#save(error_knn_nntrf, file="../inst/error_knn_nntrf.rda")
+}
+
+
+```
+
+
+```{r}
+# First, the three evaluations of the outer 3-fold crossvalidation, one per fold:
+print(error_knn_nntrf$measures.test)
+# Second, their average
+print(error_knn_nntrf$aggr)
+```
+## nntrf hyper-parameter tuning with repetitions=5
+
+Despite knowing that 2 neurons is enough to solve this problem, hyper-parameter tuning in the previous section always selected between 5 and 6 neurons. In order to check whether the reason is that the neural network training gets stuck in local minima, the piece of code below uses repetitions = 5. Results show that now the number of neurons can be somewhat reduced to 4-5 and accuracy increases up to 0.9773002, but at a larger computational cost.
+
+```{r}
+knn_lrn <- makeLearner("classif.fnn")
+knn_nntrf <- cpo_nntrf() %>>% knn_lrn
+knn_nntrf <- setHyperPars(knn_nntrf, nntrfCPO.repetitions=1, nntrfCPO.maxit=100, nntrfCPO.use_sigmoid=FALSE)
+knn_nntrf <- setHyperPars(knn_nntrf, nntrfCPO.repetitions=5)
+
+ps <- makeParamSet(makeDiscreteParam("k", values = 1:7),
+                   makeDiscreteParam("nntrfCPO.size", values = 1:10)
+)
+knn_nntrf_tune <- makeTuneWrapper(knn_nntrf, resampling = inner_desc, par.set = ps, 
+                                     control = control_grid, measures = list(acc), show.info = FALSE)
+
+set.seed(1)
+# Please, note that in order to save time, results have been precomputed
+if(file.exists("../inst/error_knn_nntrf_tune5.rda")){load("../inst/error_knn_nntrf_tune5.rda")} else {
+error_knn_nntrf_tune <- resample(knn_nntrf_tune, doughnut_task, outer_inst, 
+                                 measures = list(acc), 
+                                 extract = getTuneResult, show.info =  FALSE)
+# save(error_knn_nntrf_tune, file="../inst/error_knn_nntrf_tune5.rda")
+}
+
+
+print(error_knn_nntrf_tune$extract)
+print(error_knn_nntrf_tune$aggr)
+results_hyper <- generateHyperParsEffectData(error_knn_nntrf_tune)
+head(arrange(results_hyper$data, -acc.test.mean))
+```
+
+## Hyper-parameter tuning with PCA
+
+In order to compare a supervised transformation method (**nntrf**) with an unsupervised one (PCA), it is very easy to do exactly the same pre-processing with PCA. In this case, the main hyper-parameters are **k** (number of KNN neighbors) and **Pca.rank** (the number of PCA components to be used, which would be the counterpart of **size**, the number of hidden neurons used by **nntrf**).
+
+```{r}
+knn_pca <- cpoPca(center=TRUE, scale=TRUE, export=c("rank")) %>>% knn_lrn
+
+ps_pca <- makeParamSet(makeDiscreteParam("k", values = 1:7),
+                       makeDiscreteParam("pca.rank", values = 1:10)
+)
+
+knn_pca_tune <- makeTuneWrapper(knn_pca, resampling = inner_desc, par.set = ps_pca, 
+                                     control = control_grid, measures = list(acc), show.info = FALSE)
+```
+
+```{r}
+set.seed(1)
+# Please, note that in order to save time, results have been precomputed
+if(file.exists("../inst/error_knn_pca_tune.rda")){load("../inst/error_knn_pca_tune.rda")} else {
+error_knn_pca_tune <- resample(knn_pca_tune, doughnut_task, outer_inst, 
+                               measures = list(acc), 
+                               extract = getTuneResult, show.info =  FALSE)
+# save(error_knn_pca_tune, file="../inst/error_knn_pca_tune.rda")
+}
+
+```
+
+It can be seen below that while **nntrf** is able to get an accuracy higher than 0.95, **PCA** only gets to nearly 0.65. Also the number of components required by **PCA** is the maximum allowed (pca.rank=10)
+
+```{r}
+print(error_knn_pca_tune$extract)
+print(error_knn_pca_tune$aggr)
+results_hyper <- generateHyperParsEffectData(error_knn_pca_tune)
+head(arrange(results_hyper$data, -acc.test.mean))
+```
+## Hyper-parameter tuning with just KNN
+
+For completeness sake, below are the results with, no pre-processing, just KNN (results are very similar to the ones with PCA):
+
+```{r}
+
+ps_knn <- makeParamSet(makeDiscreteParam("k", values = 1:7))
+
+
+knn_tune <- makeTuneWrapper(knn_lrn, resampling = inner_desc, par.set = ps_knn, 
+                                     control = control_grid, measures = list(acc), show.info = FALSE)
+
+set.seed(1)
+# Please, note that in order to save time, results have been precomputed
+if(file.exists("../inst/error_knn_tune.rda")){load("../inst/error_knn_tune.rda")} else {
+error_knn_tune <- resample(knn_tune, doughnut_task, outer_inst, measures = list(acc), 
+                           extract = getTuneResult, show.info =  FALSE)
+#save(error_knn_tune, file="../inst/error_knn_tune.rda")
+}
+
+```
+
+```{r}
+print(error_knn_tune$extract)
+print(error_knn_tune$aggr)
+results_hyper <- generateHyperParsEffectData(error_knn_tune)
+head(arrange(results_hyper$data, -acc.test.mean))
+```

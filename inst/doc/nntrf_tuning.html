@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Ricardo Aler" />
+
+<meta name="date" content="2020-07-21" />
+
+<title>nntrf hyper-parameter tuning</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">nntrf hyper-parameter tuning</h1>
+<h4 class="author">Ricardo Aler</h4>
+<h4 class="date">2020-07-21</h4>
+
+
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(nntrf)
+<span class="kw">library</span>(mlr)
+<span class="co">#&gt; Loading required package: ParamHelpers</span>
+<span class="co">#&gt; 'mlr' is in maintenance mode since July 2019. Future development</span>
+<span class="co">#&gt; efforts will go into its successor 'mlr3'</span>
+<span class="co">#&gt; (&lt;https://mlr3.mlr-org.com&gt;).</span>
+<span class="kw">library</span>(mlrCPO)
+<span class="kw">library</span>(FNN)</code></pre></div>
+<div id="nntrf-hyper-parameter-tuning" class="section level1">
+<h1>nntrf Hyper-parameter Tuning</h1>
+<p><strong>nntrf</strong> has several hyper-parameters which are important in order to obtain good results. Those are:</p>
+<ul>
+<li><strong>size:</strong> The number of hidden neurons</li>
+<li><strong>maxit:</strong> The number of iterations</li>
+<li><strong>repetitions:</strong> The number of training repetitions</li>
+<li><strong>use_sigmoid:</strong> Whether the transformation should use the sigmoid or not</li>
+</ul>
+<p>Machine learning pipelines usually contain two kinds of steps: pre-processing and classifier/regressor. Both kinds of steps contain hyper-parameters and they are optimized together. <strong>nntrf</strong> is a preprocessing step. The classifier method that will be used after preprocessing is KNN, whose main hyper-parameter is the number of neighbors (<strong>k</strong>). Hyper-parameter tuning could be programmed from scratch, but it is more efficient to use the procedures already available in machine learning packages such as <a href="https://mlr.mlr-org.com/">mlr</a> or Caret. In this case, <strong>mlr</strong> will be used. Code to do that is described below.</p>
+<p>The next piece of code has nothing to do with <strong>nntrf</strong>. It just establishes that the doughnutRandRotated dataset is going to be used (with target variable “V11”), that grid search is going to be used for hyper-parameter tuning, that an external 3-fold crossvalidation is going to be used to evaluate models, while an inner 3-fold crossvalidation is going to be used for hyper-parameter tuning.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(<span class="st">&quot;doughnutRandRotated&quot;</span>)
+
+doughnut_task &lt;-<span class="st"> </span><span class="kw">makeClassifTask</span>(<span class="dt">data =</span> doughnutRandRotated, <span class="dt">target =</span> <span class="st">&quot;V11&quot;</span>)
+control_grid &lt;-<span class="st"> </span><span class="kw">makeTuneControlGrid</span>()
+inner_desc &lt;-<span class="st"> </span><span class="kw">makeResampleDesc</span>(<span class="st">&quot;CV&quot;</span>, <span class="dt">iter=</span><span class="dv">3</span>)
+outer_desc &lt;-<span class="st">  </span><span class="kw">makeResampleDesc</span>(<span class="st">&quot;CV&quot;</span>, <span class="dt">iter=</span><span class="dv">3</span>)
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+outer_inst &lt;-<span class="st"> </span><span class="kw">makeResampleInstance</span>(outer_desc, doughnut_task)</code></pre></div>
+<p>A mlr subpakage, called mlrCPO, is going to be used to combine pre-processing and learning into a single pipeline. In order to do that, <strong>nntrf</strong> must be defined as a pipeline step, as follows. Basically, it defines <strong>train</strong> and <strong>retrafo</strong> methods. The former, trains the neural networks and stores the hidden layer weights, the latter applies the transformation on a dataset. <strong>pSS</strong> is used to define the main <strong>nntrf</strong> hyper-parameters.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cpo_nntrf =<span class="st"> </span><span class="kw">makeCPO</span>(<span class="st">&quot;nntrfCPO&quot;</span>,  
+                       <span class="co"># Here, the hyper-parameters of nntrf are defined</span>
+                       <span class="kw">pSS</span>(size<span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
+                           <span class="dt">repetitions =</span> <span class="dv">1</span> <span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
+                           <span class="dt">maxit =</span> <span class="dv">100</span> <span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
+                           <span class="dt">use_sigmoid =</span> <span class="ot">FALSE</span><span class="op">:</span><span class="st"> </span>logical),
+                       <span class="dt">dataformat =</span> <span class="st">&quot;numeric&quot;</span>,
+                       <span class="dt">cpo.train =</span> <span class="cf">function</span>(data, target, size, repetitions, maxit, use_sigmoid) {
+                         nnpo &lt;-<span class="st"> </span><span class="kw">nntrf</span>(<span class="dt">repetitions=</span>repetitions,
+                                       <span class="dt">formula=</span>target[[<span class="dv">1</span>]]<span class="op">~</span>.,
+                                       <span class="dt">data=</span>data,
+                                       <span class="dt">size=</span>size, <span class="dt">maxit=</span>maxit, <span class="dt">trace=</span><span class="ot">FALSE</span>)
+                       },
+                       <span class="dt">cpo.retrafo =</span> <span class="cf">function</span>(data, control, size, repetitions, maxit, use_sigmoid) {
+                       
+                         trf_x &lt;-<span class="st"> </span>control<span class="op">$</span><span class="kw">trf</span>(<span class="dt">x=</span>data,<span class="dt">use_sigmoid=</span>use_sigmoid)
+                         trf_x
+                       })</code></pre></div>
+<p>Next, the pipeline of pre-processing + classifier method (KNN in this case) is defined.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># knn is the machine learning method. The knn available in the FNN package is used</span>
+knn_lrn &lt;-<span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;classif.fnn&quot;</span>)
+<span class="co"># Then, knn is combined with nntrf's preprocessing into a pipeline</span>
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span>knn_lrn
+<span class="co"># Just in case, we fix the values of the hyper-parameters that we do not require to optimize</span>
+<span class="co"># (not necessary, because they already have default values. Just to make their values explicit)</span>
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">1</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>, <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>)
+
+<span class="co"># However, we are going to use 2 repetitions here, instead of 1 (the default):</span>
+
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">2</span>)</code></pre></div>
+<p>Next, the hyper-parameter space for the pipeline is defined. Only two hyper-parameters will be optimized: the number of KNN neighbors (k), from 1 to 7, and the number of hidden neurons (size), from 1 to 10. The remaining hyper-parameters are left to some default values.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ps &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>),
+                   <span class="kw">makeDiscreteParam</span>(<span class="st">&quot;nntrfCPO.size&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">10</span>)
+)</code></pre></div>
+<p>Next, a mlr wrapper is used to give the <strong>knn_nntrf</strong> pipeline the ability to do hyper-parameter tuning.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_nntrf, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps, 
+                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<p>Finally, the complete process (3-fold hyper-parameter tuning) and 3-fold outer model evaluation is run. It takes some time.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">1</span>)
+<span class="co"># Please, note that in order to save time, results have been precomputed</span>
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="st">&quot;../inst/error_knn_nntrf_tune.rda&quot;</span>)){<span class="kw">load</span>(<span class="st">&quot;../inst/error_knn_nntrf_tune.rda&quot;</span>)} <span class="cf">else</span> {
+error_knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf_tune, doughnut_task, outer_inst, 
+                                 <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
+                                 <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
+<span class="co">#save(error_knn_nntrf_tune, file=&quot;../inst/error_knn_nntrf_tune.rda&quot;)</span>
+}</code></pre></div>
+<p>Errors and optimal hyper-parameters are as follows (the 3-fold inner hyper-parameter tuning crossvalidation accuracy is also shown in <strong>acc.test.mean</strong> ).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>extract)
+<span class="co">#&gt; [[1]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=7; nntrfCPO.size=6</span>
+<span class="co">#&gt; acc.test.mean=0.9710512</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[2]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=5; nntrfCPO.size=6</span>
+<span class="co">#&gt; acc.test.mean=0.9665467</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[3]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=3; nntrfCPO.size=5</span>
+<span class="co">#&gt; acc.test.mean=0.9589009</span></code></pre></div>
+<p>And the final outer 3-fold crossvalition accuracy is displayed below. Please, note that this <strong>acc.test.mean</strong> corresponds to the outer 3-fold crossvalidation, while the <strong>acc.test.mean</strong> above, corresponds to the inner 3-fold crossvalidation accuracy (computed during hyper-parameter tuning).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>aggr)
+<span class="co">#&gt; acc.test.mean </span>
+<span class="co">#&gt;     0.9522975</span></code></pre></div>
+<p>Although not required, mlr allows to display the results of the different hyper-parameter values, sorted by the <strong>inner</strong> 3-fold crossvalidation accuracy, from best to worse.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(dplyr)
+results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_nntrf_tune)
+<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
+<span class="co">#&gt;   k nntrfCPO.size acc.test.mean iteration exec.time nested_cv_run</span>
+<span class="co">#&gt; 1 7             6     0.9710512        42     3.161             1</span>
+<span class="co">#&gt; 2 5             6     0.9665467        40     3.088             2</span>
+<span class="co">#&gt; 3 7             4     0.9637031        28     2.458             1</span>
+<span class="co">#&gt; 4 3             5     0.9589009        31     2.897             3</span>
+<span class="co">#&gt; 5 7            10     0.9581526        70     4.333             3</span>
+<span class="co">#&gt; 6 4             6     0.9576958        39     3.514             2</span></code></pre></div>
+<p>We can also check directly what would happen with only 4 neurons (and 7 neighbors), as suggested by the table above.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;classif.fnn&quot;</span>)
+
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">2</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>, <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>, <span class="dt">k=</span><span class="dv">7</span>, <span class="dt">nntrfCPO.size=</span><span class="dv">4</span>)
+
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+<span class="co"># Please, note that in order to save time, results have been precomputed</span>
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="st">&quot;../inst/error_knn_nntrf.rda&quot;</span>)){<span class="kw">load</span>(<span class="st">&quot;../inst/error_knn_nntrf.rda&quot;</span>)} <span class="cf">else</span> {
+error_knn_nntrf &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf, doughnut_task, outer_inst, <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
+                            <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
+<span class="co">#save(error_knn_nntrf, file=&quot;../inst/error_knn_nntrf.rda&quot;)</span>
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># First, the three evaluations of the outer 3-fold crossvalidation, one per fold:</span>
+<span class="kw">print</span>(error_knn_nntrf<span class="op">$</span>measures.test)
+<span class="co">#&gt;   iter       acc</span>
+<span class="co">#&gt; 1    1 0.9636964</span>
+<span class="co">#&gt; 2    2 0.9565087</span>
+<span class="co">#&gt; 3    3 0.9477948</span>
+<span class="co"># Second, their average</span>
+<span class="kw">print</span>(error_knn_nntrf<span class="op">$</span>aggr)
+<span class="co">#&gt; acc.test.mean </span>
+<span class="co">#&gt;     0.9559999</span></code></pre></div>
+<div id="nntrf-hyper-parameter-tuning-with-repetitions5" class="section level2">
+<h2>nntrf hyper-parameter tuning with repetitions=5</h2>
+<p>Despite knowing that 2 neurons is enough to solve this problem, hyper-parameter tuning in the previous section always selected between 5 and 6 neurons. In order to check whether the reason is that the neural network training gets stuck in local minima, the piece of code below uses repetitions = 5. Results show that now the number of neurons can be somewhat reduced to 4-5 and accuracy increases up to 0.9773002, but at a larger computational cost.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_lrn &lt;-<span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;classif.fnn&quot;</span>)
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span>knn_lrn
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">1</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>, <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>)
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">5</span>)
+
+ps &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>),
+                   <span class="kw">makeDiscreteParam</span>(<span class="st">&quot;nntrfCPO.size&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">10</span>)
+)
+knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_nntrf, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps, 
+                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)
+
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+<span class="co"># Please, note that in order to save time, results have been precomputed</span>
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="st">&quot;../inst/error_knn_nntrf_tune5.rda&quot;</span>)){<span class="kw">load</span>(<span class="st">&quot;../inst/error_knn_nntrf_tune5.rda&quot;</span>)} <span class="cf">else</span> {
+error_knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf_tune, doughnut_task, outer_inst, 
+                                 <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
+                                 <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
+<span class="co"># save(error_knn_nntrf_tune, file=&quot;../inst/error_knn_nntrf_tune5.rda&quot;)</span>
+}
+
+
+<span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>extract)
+<span class="co">#&gt; [[1]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=6; nntrfCPO.size=4</span>
+<span class="co">#&gt; acc.test.mean=0.9674510</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[2]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=6; nntrfCPO.size=5</span>
+<span class="co">#&gt; acc.test.mean=0.9716472</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[3]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=5; nntrfCPO.size=5</span>
+<span class="co">#&gt; acc.test.mean=0.9707516</span>
+<span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>aggr)
+<span class="co">#&gt; acc.test.mean </span>
+<span class="co">#&gt;     0.9773002</span>
+results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_nntrf_tune)
+<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
+<span class="co">#&gt;   k nntrfCPO.size acc.test.mean iteration exec.time nested_cv_run</span>
+<span class="co">#&gt; 1 6             5     0.9716472        34     5.884             2</span>
+<span class="co">#&gt; 2 5             5     0.9707516        33     5.443             3</span>
+<span class="co">#&gt; 3 6             5     0.9677508        34     5.737             3</span>
+<span class="co">#&gt; 4 6             4     0.9674510        27     5.132             1</span>
+<span class="co">#&gt; 5 5             6     0.9662526        40     6.810             3</span>
+<span class="co">#&gt; 6 5             7     0.9662513        47     7.308             3</span></code></pre></div>
+</div>
+<div id="hyper-parameter-tuning-with-pca" class="section level2">
+<h2>Hyper-parameter tuning with PCA</h2>
+<p>In order to compare a supervised transformation method (<strong>nntrf</strong>) with an unsupervised one (PCA), it is very easy to do exactly the same pre-processing with PCA. In this case, the main hyper-parameters are <strong>k</strong> (number of KNN neighbors) and <strong>Pca.rank</strong> (the number of PCA components to be used, which would be the counterpart of <strong>size</strong>, the number of hidden neurons used by <strong>nntrf</strong>).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_pca &lt;-<span class="st"> </span><span class="kw">cpoPca</span>(<span class="dt">center=</span><span class="ot">TRUE</span>, <span class="dt">scale=</span><span class="ot">TRUE</span>, <span class="dt">export=</span><span class="kw">c</span>(<span class="st">&quot;rank&quot;</span>)) <span class="op">%&gt;&gt;%</span><span class="st"> </span>knn_lrn
+
+ps_pca &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>),
+                       <span class="kw">makeDiscreteParam</span>(<span class="st">&quot;pca.rank&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">10</span>)
+)
+
+knn_pca_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_pca, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps_pca, 
+                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">1</span>)
+<span class="co"># Please, note that in order to save time, results have been precomputed</span>
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="st">&quot;../inst/error_knn_pca_tune.rda&quot;</span>)){<span class="kw">load</span>(<span class="st">&quot;../inst/error_knn_pca_tune.rda&quot;</span>)} <span class="cf">else</span> {
+error_knn_pca_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_pca_tune, doughnut_task, outer_inst, 
+                               <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
+                               <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
+<span class="co"># save(error_knn_pca_tune, file=&quot;../inst/error_knn_pca_tune.rda&quot;)</span>
+}</code></pre></div>
+<p>It can be seen below that while <strong>nntrf</strong> is able to get an accuracy higher than 0.95, <strong>PCA</strong> only gets to nearly 0.65. Also the number of components required by <strong>PCA</strong> is the maximum allowed (pca.rank=10)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_pca_tune<span class="op">$</span>extract)
+<span class="co">#&gt; [[1]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=2; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6424198</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[2]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=6; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6461146</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[3]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=2; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6331176</span>
+<span class="kw">print</span>(error_knn_pca_tune<span class="op">$</span>aggr)
+<span class="co">#&gt; acc.test.mean </span>
+<span class="co">#&gt;     0.6495998</span>
+results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_pca_tune)
+<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
+<span class="co">#&gt;   k pca.rank acc.test.mean iteration exec.time nested_cv_run</span>
+<span class="co">#&gt; 1 6       10     0.6461146        69     1.719             2</span>
+<span class="co">#&gt; 2 4       10     0.6447645        67     1.567             2</span>
+<span class="co">#&gt; 3 2       10     0.6424198        65     1.432             1</span>
+<span class="co">#&gt; 4 6       10     0.6404687        69     1.627             1</span>
+<span class="co">#&gt; 5 7       10     0.6372637        70     1.780             2</span>
+<span class="co">#&gt; 6 4       10     0.6349195        67     1.766             1</span></code></pre></div>
+</div>
+<div id="hyper-parameter-tuning-with-just-knn" class="section level2">
+<h2>Hyper-parameter tuning with just KNN</h2>
+<p>For completeness sake, below are the results with, no pre-processing, just KNN (results are very similar to the ones with PCA):</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+ps_knn &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>))
+
+
+knn_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_lrn, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps_knn, 
+                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)
+
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+<span class="co"># Please, note that in order to save time, results have been precomputed</span>
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="st">&quot;../inst/error_knn_tune.rda&quot;</span>)){<span class="kw">load</span>(<span class="st">&quot;../inst/error_knn_tune.rda&quot;</span>)} <span class="cf">else</span> {
+error_knn_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_tune, doughnut_task, outer_inst, <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
+                           <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
+<span class="co">#save(error_knn_tune, file=&quot;../inst/error_knn_tune.rda&quot;)</span>
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_tune<span class="op">$</span>extract)
+<span class="co">#&gt; [[1]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=2</span>
+<span class="co">#&gt; acc.test.mean=0.6403202</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[2]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=4</span>
+<span class="co">#&gt; acc.test.mean=0.6401140</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; [[3]]</span>
+<span class="co">#&gt; Tune result:</span>
+<span class="co">#&gt; Op. pars: k=2</span>
+<span class="co">#&gt; acc.test.mean=0.6316178</span>
+<span class="kw">print</span>(error_knn_tune<span class="op">$</span>aggr)
+<span class="co">#&gt; acc.test.mean </span>
+<span class="co">#&gt;     0.6461999</span>
+results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_tune)
+<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
+<span class="co">#&gt;   k acc.test.mean iteration exec.time nested_cv_run</span>
+<span class="co">#&gt; 1 2     0.6403202         2     1.196             1</span>
+<span class="co">#&gt; 2 4     0.6401140         4     1.361             2</span>
+<span class="co">#&gt; 3 6     0.6398140         6     1.484             2</span>
+<span class="co">#&gt; 4 4     0.6367190         4     1.386             1</span>
+<span class="co">#&gt; 5 6     0.6356693         6     1.640             1</span>
+<span class="co">#&gt; 6 7     0.6345635         7     1.522             2</span></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

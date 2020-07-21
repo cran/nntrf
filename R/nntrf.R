@@ -3,8 +3,8 @@
 #' @description{This function transforms a dataset into the activations of the neurons of the hidden layer of a neural network. 
 #' This is done by training a neural network and then computing the activations of the neural network for each input pattern
 #' }
+#' @param keep_nn (default TRUE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required
 #' @param repetitions (default 1) Repeat nnet several times with different random seeds and select the best run using nnet's minimum \emph{value}. This is useful because some random initialization of weights may lead to local minima.
-#' @param keep_nn (default FALSE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required
 #' @param random_seed (default NULL)
 #' @param ... See \code{\link{nnet}} params. Most important: \itemize{
 #' \item x \strong{matrix} of x values for examples. Important: it must be a matrix of real numbers (not a data.frame). The transformation requires matrix multiplication, hence it cannot contain factors or strings.
@@ -13,7 +13,7 @@
 #' \item maxit steps is the number of iterations of the net.
 #' }
 #' @return list of: \itemize{
-#'   \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has two arguments:
+#'   \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has three arguments:
 #'     \itemize{
 #'       \item x: the input \strong{matrix} to be transformed
 #'       \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the output layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
@@ -218,7 +218,7 @@ nntrf_doughnut <- function(verbose=TRUE){
     
     if(verbose){cat(paste0("With nntrf (sigmoid=FALSE) and 5 repetitions ", success, "\n"))}
     
-    return(c(no_nntrf=no_nntrf, nntrf_sigmoid=nntrf_nosigmoid, nntrf_nosigmoid_5reps=nntrf_nosigmoid_5reps))
+    return(c(no_nntrf=no_nntrf, nntrf_nosigmoid=nntrf_nosigmoid, nntrf_nosigmoid_5reps=nntrf_nosigmoid_5reps))
   }
 
   doughnut <- NULL
