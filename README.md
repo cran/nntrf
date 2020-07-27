@@ -1,6 +1,6 @@
 # Project Title
 
-*nntrf*: Neural Network based Transformations: Supervised Data Transformation by Means of Neural Network Hidden Layers
+*nntrf*: Neural Network based Transformations: Supervised Data Transformation by Means of Neural Network Hidden Layer
 
 ## Getting Started
 

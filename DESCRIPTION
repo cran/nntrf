@@ -1,7 +1,7 @@
 Package: nntrf
 Title: Supervised Data Transformation by Means of Neural Network Hidden
-        Layers
-Version: 0.1.1
+        Layer
+Version: 0.1.2
 Authors@R: c(person("Ricardo", "Aler", email = "ricardo.aler@uc3m.es", role = c("aut", "cre")),
               person("Jose", "Valls", email = "jvalls@inf.uc3m.es", role = c("aut")),
               person("Ines", "Galvan", email = "igalvan@inf.uc3m.es", role = c("aut")),
@@ -23,11 +23,11 @@ Encoding: UTF-8
 RoxygenNote: 5.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-07-21 12:31:42 UTC; aler
+Packaged: 2020-07-27 15:38:25 UTC; aler
 Author: Ricardo Aler [aut, cre],
   Jose Valls [aut],
   Ines Galvan [aut],
   David Camacho [aut]
 Maintainer: Ricardo Aler <ricardo.aler@uc3m.es>
 Repository: CRAN
-Date/Publication: 2020-07-21 13:20:03 UTC
+Date/Publication: 2020-07-27 23:00:07 UTC

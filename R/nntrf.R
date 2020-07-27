@@ -1,22 +1,25 @@
 #' @title{nntrf: a supervised transformation function based on neural networks (Neural Net based Transformations)}
 #'
 #' @description{This function transforms a dataset into the activations of the neurons of the hidden layer of a neural network. 
-#' This is done by training a neural network and then computing the activations of the neural network for each input pattern
+#' This is done by training a neural network and then computing the activations of the neural network for each input pattern. 
+#' AT THIS MOMENT, NNTRF WORKS ONLY FOR CLASSIFICATION PROBLEMS.
 #' }
 #' @param keep_nn (default TRUE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required
 #' @param repetitions (default 1) Repeat nnet several times with different random seeds and select the best run using nnet's minimum \emph{value}. This is useful because some random initialization of weights may lead to local minima.
 #' @param random_seed (default NULL)
+#' @param xavier_ini (default FALSE) use Xavier initialization for sigmoid (https://mnsgrg.com/2017/12/21/xavier-initialization/)
+#' @param orthog_ini (default FALSE) only with Xavier initialization. Use orthogonal vectors to initialize hidden layer
 #' @param ... See \code{\link{nnet}} params. Most important: \itemize{
-#' \item x \strong{matrix} of x values for examples. Important: it must be a matrix of real numbers (not a data.frame). The transformation requires matrix multiplication, hence it cannot contain factors or strings.
-#' \item y vector or matrix of target values for examples. Use factors for classification problems.
-#' \item size number of units in the hidden layer.  
-#' \item maxit steps is the number of iterations of the net.
+#' \item formula 
+#' \item data :dataframe with data. The last column \strong{must} be the dependent variable and \strong{must} use factors for classification problems. The input/independent variables \strong{must} contain numeric values only.
+#' \item size :number of units in the hidden layer.  
+#' \item maxit :steps is the number of iterations of the net.
 #' }
 #' @return list of: \itemize{
 #'   \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has three arguments:
 #'     \itemize{
-#'       \item x: the input \strong{matrix} to be transformed
-#'       \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the output layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
+#'       \item x: the input numeric \strong{matrix} to be transformed
+#'       \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the hidden layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
 #'       \item norm (default FALSE): If TRUE, this function's output is normalized (scaled) to range 0-1
 #'     }
 #'   \item mod: values returned by nnet 
@@ -27,6 +30,7 @@
 #' @importFrom nnet nnet
 #' @importFrom NeuralNetTools neuralweights
 #' @importFrom pracma sigmoid
+#' @importFrom stats runif
 #' @export
 #' @examples
 #  Check also nntrf_doughnut function for examples
@@ -34,7 +38,7 @@
 #' data("doughnutRandRotated")
 #' rd <- doughnutRandRotated
 #' n <- nrow(rd)
-#' set.seed(1)
+#' set.seed(0)
 #' training_index <- sample(1:n, round(0.6*n))
 #' train <- rd[training_index,]
 #' test <- rd[-training_index,]
@@ -42,8 +46,7 @@
 #' y_train <- train[,ncol(train)]
 #' x_test <- test[,-ncol(test)]
 #' y_test <- test[,ncol(test)]
-#' set.seed(1)
-#' # Change maxit to 100 for reasonable results
+#' set.seed(0)
 #' nnpo <- nntrf(formula=V11~.,
 #'               data=train,
 #'               size=4, maxit=50, trace=TRUE)
@@ -52,7 +55,7 @@
 #' outputs <- FNN::knn(trf_x_train, trf_x_test, factor(y_train))
 #' success <- mean(outputs == y_test)
 #' print(success)
-nntrf <- function(keep_nn=TRUE, repetitions=1, random_seed=NULL, ...){
+nntrf <- function(keep_nn=TRUE, repetitions=1, random_seed=NULL, xavier_ini=FALSE, orthog_ini=FALSE, ...){
 
   normalize <- function(x) { 
     minAttr=apply(x, 2, min)
@@ -76,13 +79,67 @@ nntrf <- function(keep_nn=TRUE, repetitions=1, random_seed=NULL, ...){
   data <- inputs$data
   size <- inputs$size
   
-  MaxNWts <- ((dim(data)[2]-1)+1)*size+(size+1)*length(unique(data[,ncol(data)]))
+  rang <- inputs$rang
+  if(is.null(rang)) rang <- 1
+  
+
+  # Note: Only classification, no complete support for regression yet.  
+  
+  if(is.factor(data[,ncol(data)])){
+    # Classification
+    num_classes <- length(unique(data[,ncol(data)]))
+  } else {
+    # Regression
+    warning("Use of nntrf for regression is still experimental.")
+    num_classes <- 1
+  }
+  num_inputs <- (dim(data)[2]-1)
+  nweigths_hidden <- (num_inputs+1)*size
+  
+  if(num_classes <= 2){
+    num_outputs <- 1
+  } else {
+    num_outputs <- num_classes
+  }
+  
+  MaxNWts <- nweigths_hidden +(size+1)*num_outputs
+  
+  
+  # XAVIER INITIALIZATION
+  if(xavier_ini | orthog_ini){
+    a <- rang*4*sqrt(6/(num_inputs+size))
+    capa1 <- runif(nweigths_hidden, -a, +a)
+    
+    if(orthog_ini){
+      capa1 <- matrix(capa1, nrow = size, byrow = TRUE)
+      mat_ortho <- pracma::randortho(num_inputs, type = c("orthonormal"))
+      capa1[,2:ncol(capa1)] <- mat_ortho[1:size,]
+      capa1 <-  as.vector(t(capa1))
+      # Maximum value to be a
+      multiplier <- runif(1,min=0,max=a)
+      if(multiplier==0) multiplier <- 1
+      capa1 <- capa1/max(abs(capa1))*multiplier
+    }
+    
+    a <- rang*4*sqrt(6/(size+num_outputs))
+    capa2 <- runif(MaxNWts-nweigths_hidden, -a, +a)
+    wts_b <- c(capa1, capa2)
+  }
   
   mod <- if(MaxNWts>1000){
-    nnet::nnet.formula(...,MaxNWts = MaxNWts)
+    if(xavier_ini){
+      nnet::nnet.formula(...,MaxNWts = MaxNWts, Wts=wts_b)
+    } else {
+      nnet::nnet.formula(...,MaxNWts = MaxNWts)    
+    }
   } else {
-    nnet::nnet.formula(...)
+    if(xavier_ini){
+      nnet::nnet.formula(..., Wts=wts_b)
+    } else {
+      nnet::nnet.formula(...)
+    }  
   }
+  
   
   wts <- NeuralNetTools::neuralweights(mod)
   struct <- wts$struct
@@ -91,10 +148,40 @@ nntrf <- function(keep_nn=TRUE, repetitions=1, random_seed=NULL, ...){
   repetitions <- repetitions - 1
   
   while(repetitions>0){
+    # XAVIER INITIALIZATION
+    if(xavier_ini | orthog_ini){
+      a <- rang*4*sqrt(6/(num_inputs+size))
+      capa1 <- runif(nweigths_hidden, -a, +a)
+      
+      if(orthog_ini){
+        capa1 <- matrix(capa1, nrow = size, byrow = TRUE)
+        mat_ortho <- pracma::randortho(num_inputs, type = c("orthonormal"))
+        capa1[,2:ncol(capa1)] <- mat_ortho[1:size,]
+        capa1 <-  as.vector(t(capa1))
+        # Maximum value to be a
+        multiplier <- runif(1,min=0,max=a)
+        if(multiplier==0) multiplier <- 1
+        capa1 <- capa1/max(abs(capa1))*multiplier
+      }
+      
+      a <- rang*4*sqrt(6/(size+num_outputs))
+      capa2 <- runif(MaxNWts-nweigths_hidden, -a, +a)
+      wts_b <- c(capa1, capa2)
+    }
+    
+    
       mod_rep <- if(MaxNWts>1000){
-        nnet::nnet.formula(...,MaxNWts = MaxNWts)
+        if(xavier_ini){
+          nnet::nnet.formula(...,MaxNWts = MaxNWts, Wts=wts_b)
+        } else {
+          nnet::nnet.formula(...,MaxNWts = MaxNWts)    
+        }
       } else {
-        nnet::nnet.formula(...)
+        if(xavier_ini){
+          nnet::nnet.formula(..., Wts=wts_b)
+        } else {
+          nnet::nnet.formula(...)
+        }  
       }
       
       if(mod_rep$value < value){
@@ -115,6 +202,7 @@ nntrf <- function(keep_nn=TRUE, repetitions=1, random_seed=NULL, ...){
   output <- list(trf = function(x,use_sigmoid=TRUE, norm=FALSE) {
                          x <- as.matrix(x)
                          result <- cbind(1,x) %*% matrix1
+                         #result <- x %*% matrix1[-1,]
                          if(use_sigmoid) {result <- pracma::sigmoid(result)}
                          if(norm) {result <- normalize(result)}
                          return(result)
@@ -194,13 +282,13 @@ nntrf_doughnut <- function(verbose=TRUE){
     x_train <- as.matrix(x_train)
     x_test <- as.matrix(x_test)
     
-    set.seed(1)
+    set.seed(0)
     outputs <- FNN::knn(x_train, x_test, factor(y_train))
     success <- mean(outputs == y_test)
     if(verbose) {cat(paste0("Without nntrf ", success, "\n"))}
     no_nntrf <- success
     
-    set.seed(1)
+    set.seed(0)
 
     nnpo <- nntrf::nntrf(formula=formula, data=train,
                          size=5, maxit=100, trace=FALSE)
@@ -231,7 +319,7 @@ nntrf_doughnut <- function(verbose=TRUE){
   n <- nrow(rd)
   
   # Use 60% of data for training 40% for testing
-  set.seed(1)
+  set.seed(0)
   training_index <- sample(1:n, round(0.6*n))
   if(verbose){cat(paste0("Dataset Doughnut \n"))}
   results_doughnut <- nntrf_train_test(V3~., rd, training_index)
@@ -270,7 +358,7 @@ nntrf_iris <- function(verbose=TRUE){
   rd <- iris
   n <- nrow(rd)
   
-  set.seed(1)
+  set.seed(0)
   training_index <- sample(1:n, round(0.6*n))
   
   train <- rd[training_index,]
@@ -280,14 +368,14 @@ nntrf_iris <- function(verbose=TRUE){
   x_test <- as.matrix(test[,-ncol(test)])
   y_test <- test[,ncol(test)] 
   
-  set.seed(1)
+  set.seed(0)
   outputs <- FNN::knn(x_train, x_test, train$Species)
   success <- mean(outputs == test$Species)
   no_nntrf = success
   
   if(verbose){cat(paste0("Success rate of KNN (K=1) with iris ", success, "\n"))}
   
-  set.seed(1)
+  set.seed(0)
   nnpo <- nntrf::nntrf(formula=Species ~. ,
                 data=train,
                 size=2, maxit=140, trace=verbose)

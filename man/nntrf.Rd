@@ -4,7 +4,8 @@
 \alias{nntrf}
 \title{{nntrf: a supervised transformation function based on neural networks (Neural Net based Transformations)}}
 \usage{
-nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL, ...)
+nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL,
+  xavier_ini = FALSE, orthog_ini = FALSE, ...)
 }
 \arguments{
 \item{keep_nn}{(default TRUE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required}
@@ -13,19 +14,23 @@ nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL, ...)
 
 \item{random_seed}{(default NULL)}
 
+\item{xavier_ini}{(default FALSE) use Xavier initialization for sigmoid (https://mnsgrg.com/2017/12/21/xavier-initialization/)}
+
+\item{orthog_ini}{(default FALSE) only with Xavier initialization. Use orthogonal vectors to initialize hidden layer}
+
 \item{...}{See \code{\link{nnet}} params. Most important: \itemize{
-\item x \strong{matrix} of x values for examples. Important: it must be a matrix of real numbers (not a data.frame). The transformation requires matrix multiplication, hence it cannot contain factors or strings.
-\item y vector or matrix of target values for examples. Use factors for classification problems.
-\item size number of units in the hidden layer.  
-\item maxit steps is the number of iterations of the net.
+\item formula 
+\item data :dataframe with data. The last column \strong{must} be the dependent variable and \strong{must} use factors for classification problems. The input/independent variables \strong{must} contain numeric values only.
+\item size :number of units in the hidden layer.  
+\item maxit :steps is the number of iterations of the net.
 }}
 }
 \value{
 list of: \itemize{
   \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has three arguments:
     \itemize{
-      \item x: the input \strong{matrix} to be transformed
-      \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the output layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
+      \item x: the input numeric \strong{matrix} to be transformed
+      \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the hidden layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
       \item norm (default FALSE): If TRUE, this function's output is normalized (scaled) to range 0-1
     }
   \item mod: values returned by nnet 
@@ -35,14 +40,15 @@ list of: \itemize{
 }
 \description{
 {This function transforms a dataset into the activations of the neurons of the hidden layer of a neural network. 
-This is done by training a neural network and then computing the activations of the neural network for each input pattern
+This is done by training a neural network and then computing the activations of the neural network for each input pattern. 
+AT THIS MOMENT, NNTRF WORKS ONLY FOR CLASSIFICATION PROBLEMS.
 }
 }
 \examples{
 data("doughnutRandRotated")
 rd <- doughnutRandRotated
 n <- nrow(rd)
-set.seed(1)
+set.seed(0)
 training_index <- sample(1:n, round(0.6*n))
 train <- rd[training_index,]
 test <- rd[-training_index,]
@@ -50,8 +56,7 @@ x_train <- train[,-ncol(train)]
 y_train <- train[,ncol(train)]
 x_test <- test[,-ncol(test)]
 y_test <- test[,ncol(test)]
-set.seed(1)
-# Change maxit to 100 for reasonable results
+set.seed(0)
 nnpo <- nntrf(formula=V11~.,
               data=train,
               size=4, maxit=50, trace=TRUE)

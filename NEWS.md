@@ -2,3 +2,5 @@
 - Initial release to CRAN
 ## nntrf 0.1.1:
 - Small mistakes corrected and added a vignette for doing hyper-parameter tuning with nntrf and mlr
+## nntrf 0.1.2
+- Mistake corrected in hyper-parameter tuning vignette. Added Xavier and orthogonal weight initialization.

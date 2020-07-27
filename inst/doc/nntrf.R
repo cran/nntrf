@@ -35,25 +35,38 @@ y_train <- train[,ncol(train)]
 x_test <- test[,-ncol(test)]
 y_test <- test[,ncol(test)] 
 
-set.seed(1)
+set.seed(0)
 outputs <- FNN::knn(x_train, x_test, factor(y_train))
 success <- mean(outputs == y_test)
 cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated ", success, "\n"))
 
-set.seed(1)
+set.seed(0)
 nnpo <- nntrf(formula=V11~.,
               data=train,
               size=4, maxit=100, trace=FALSE)
 
+# With sigmoid
+
+trf_x_train <- nnpo$trf(x=x_train,use_sigmoid=TRUE)
+trf_x_test <- nnpo$trf(x=x_test,use_sigmoid=TRUE)
+
+outputs <- FNN::knn(trf_x_train, trf_x_test, factor(y_train))
+success <- mean(outputs == y_test)
+cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated transformed by nntrf with Sigmoid ", success, "\n"))
+
+# With no sigmoid
 trf_x_train <- nnpo$trf(x=x_train,use_sigmoid=FALSE)
 trf_x_test <- nnpo$trf(x=x_test,use_sigmoid=FALSE)
 
 outputs <- FNN::knn(trf_x_train, trf_x_test, factor(y_train))
 success <- mean(outputs == y_test)
-cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated transformed by nntrf ", success, "\n"))
+cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated transformed by nntrf with no sigmoid ", success, "\n"))
+
+
+
 
 ## ------------------------------------------------------------------------
-plot(trf_x_train[,1], trf_x_train[,4], col=y_train)
+plot(trf_x_train[,1], trf_x_train[,2], col=y_train)
 
 ## ------------------------------------------------------------------------
 set.seed(0)
@@ -73,7 +86,7 @@ cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated transformed by nn
 rd <- iris
 n <- nrow(rd)
 
-set.seed(1)
+set.seed(0)
 training_index <- sample(1:n, round(0.6*n))
   
 train <- rd[training_index,]
@@ -83,12 +96,12 @@ y_train <- train[,ncol(train)]
 x_test <- as.matrix(test[,-ncol(test)])
 y_test <- test[,ncol(test)]
 
-set.seed(1)
+set.seed(0)
 outputs <- FNN::knn(x_train, x_test, train$Species)
 success <- mean(outputs == test$Species)
 cat(paste0("Success rate of KNN (K=1) with iris ", success, "\n"))
 
-set.seed(1)
+set.seed(0)
 nnpo <- nntrf(formula = Species~.,
               data=train,
               size=2, maxit=100, trace=FALSE)
