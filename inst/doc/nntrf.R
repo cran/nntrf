@@ -13,7 +13,7 @@ library(nntrf)
 
 ## ------------------------------------------------------------------------
 data("doughnut")
-plot(doughnut$V1, doughnut$V2, col=2+doughnut$V3)
+plot(doughnut$V1, doughnut$V2, col=doughnut$V3)
 
 ## ------------------------------------------------------------------------
 head(doughnutRandRotated,5)

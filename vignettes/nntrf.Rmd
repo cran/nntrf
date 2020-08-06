@@ -28,13 +28,13 @@ library(nntrf)
 
 **nntrf** stands for Neural Net Transformation. The aim of this package is to use the hidden layer weights of a neural network (NN) as a transformation of the dataset, that can be used by other machine learning methods. 
 
-Mathematically, a standard NN with one hidden layer is $\hat{y} = S(S(x*W_1)*W_2)$, where $x$ is one instance ($x = (x_1, x_2, x_n, 1)$) and $W_1$ and $W_2$ are the weights of the hidden and output layer, respectively ($*$ is the matrix product and $S()$ is the sigmoid function). The aim of **nntrf** is to train a NN with some training data $(X,Y)$ and then use $W_1$ to transform datasets via $X' = S(X*W_1)$. Obviously, the same transformation can be applied to test datasets. This transformation is supervised, because a NN was trained to approximate this problem, as opposed to unsupervised transformations like PCA.
+Mathematically, a standard NN with one hidden layer is $\hat{y} = S(S(x*W_1)*W_2)$, where $x$ is one instance ($x = (1, x_1, x_2, x_n)$) and $W_1$ and $W_2$ are the weights of the hidden and output layer (including the biases), respectively ($*$ is the matrix product and $S()$ is the sigmoid function). The aim of **nntrf** is to train a NN with some training data $(X,Y)$ and then use $W_1$ to transform datasets via $X' = S(X*W_1)$. Obviously, the same transformation can be applied to test datasets. This transformation is supervised, because a NN was trained to approximate this problem, as opposed to unsupervised transformations like PCA.
 
-In order to show how this can be used, the *doughnut* dataset will be used.
+In order to show how this can be used, the *doughnut* dataset will be used. It is a two-class problem: black and red.
 
 ```{r}
 data("doughnut")
-plot(doughnut$V1, doughnut$V2, col=2+doughnut$V3)
+plot(doughnut$V1, doughnut$V2, col=doughnut$V3)
 ```
 
 The *doughnut* dataset has been altered by adding 8 random features (uniform noise between 0 and 1) and performing a random rotation on the resulting dataset. The result is the *doughnutRandRotated* dataset with 10 features. 
@@ -100,7 +100,8 @@ Interestingly, attributes 1 and 2 of the transformed dataset have recovered the 
 ```{r}
 plot(trf_x_train[,1], trf_x_train[,2], col=y_train)
 ```
-In some cases, NN training may get stuck in local minima. Parameter **repetitions** (with default = 1) allows to repeat the training process several times and keep the best NN in training. Next code shows an example with 5 repetitions, which in this case, improve slightly the previous results. 
+
+In some cases, NN training may get stuck in local minima. Parameter **repetitions** (with default = 1) allows to repeat the training process several times and keep the best NN in training. Next code shows an example with 5 repetitions, which in this case, improves slightly the previous results. 
 
 ```{r}
 set.seed(0)
@@ -117,7 +118,7 @@ success <- mean(outputs == y_test)
 cat(paste0("Success rate of KNN (K=1) with doughnutRandRotated transformed by nntrf ", success, "\n"))
 ```
 
-**Important:** The number of iterations and number of hidden neurons have been given some actual values as an example. But they are hyper-parameters that should be selected by means of hyper-parameter tuning. Packages as [MLR](https://mlr.mlr-org.com/) could help in this case.
+**Important:** The number of iterations and number of hidden neurons have been given some actual values as an example. But they are hyper-parameters that should be selected by means of hyper-parameter tuning. Packages such as [MLR](https://mlr.mlr-org.com/) could help in this case.
 
 Next, **nntrf** is tried on **iris**, a 3-class classification problem. It can be seen that the 4-feature iris domain is transformed into a 2-feature domain, by means of **nntrf**, maintaining the success rate obtained with **knn** and the original dataset.
 

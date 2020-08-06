@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ricardo Aler" />
 
-<meta name="date" content="2020-07-27" />
+<meta name="date" content="2020-08-06" />
 
 <title>nntrf hyper-parameter tuning</title>
 
@@ -95,16 +95,12 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">nntrf hyper-parameter tuning</h1>
 <h4 class="author">Ricardo Aler</h4>
-<h4 class="date">2020-07-27</h4>
+<h4 class="date">2020-08-06</h4>
 
 
 
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(nntrf)
 <span class="kw">library</span>(mlr)
-<span class="co">#&gt; Loading required package: ParamHelpers</span>
-<span class="co">#&gt; 'mlr' is in maintenance mode since July 2019. Future development</span>
-<span class="co">#&gt; efforts will go into its successor 'mlr3'</span>
-<span class="co">#&gt; (&lt;https://mlr3.mlr-org.com&gt;).</span>
 <span class="kw">library</span>(mlrCPO)
 <span class="kw">library</span>(FNN)</code></pre></div>
 <div id="nntrf-hyper-parameter-tuning" class="section level1">
@@ -114,8 +110,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><strong>size:</strong> The number of hidden neurons</li>
 <li><strong>maxit:</strong> The number of iterations</li>
 <li><strong>repetitions:</strong> The number of training repetitions</li>
-<li><strong>xavier_ini:</strong> Use Xavier initialization for sigmoid</li>
-<li><strong>orthog_ini:</strong> Use Xavier initialization for sigmoid and orthogonal weights for the hidden layer</li>
 <li><strong>use_sigmoid:</strong> Whether the transformation should use the sigmoid or not</li>
 </ul>
 <p>Machine learning pipelines usually contain two kinds of steps: pre-processing and classifier/regressor. Both kinds of steps contain hyper-parameters and they are optimized together. <strong>nntrf</strong> is a preprocessing step. The classifier method that will be used after preprocessing is KNN, whose main hyper-parameter is the number of neighbors (<strong>k</strong>). Hyper-parameter tuning could be programmed from scratch, but it is more efficient to use the procedures already available in machine learning packages such as <a href="https://mlr.mlr-org.com/">mlr</a> or Caret. In this case, <strong>mlr</strong> will be used. Code to do that is described below.</p>
@@ -128,29 +122,25 @@ inner_desc &lt;-<span class="st"> </span><span class="kw">makeResampleDesc</span
 outer_desc &lt;-<span class="st">  </span><span class="kw">makeResampleDesc</span>(<span class="st">&quot;CV&quot;</span>, <span class="dt">iter=</span><span class="dv">3</span>)
 <span class="kw">set.seed</span>(<span class="dv">0</span>)
 outer_inst &lt;-<span class="st"> </span><span class="kw">makeResampleInstance</span>(outer_desc, doughnut_task)</code></pre></div>
-<p>A mlr subpakage, called mlrCPO, is going to be used to combine pre-processing and learning into a single pipeline. In order to do that, <strong>nntrf</strong> must be defined as a pipeline step, as follows. Basically, it defines <strong>train</strong> and <strong>retrafo</strong> methods. The former, trains the neural networks and stores the hidden layer weights, the latter applies the transformation on a dataset. <strong>pSS</strong> is used to define the main <strong>nntrf</strong> hyper-parameters.</p>
+<p>A mlr subpakage, called mlrCPO, is going to be used to combine pre-processing and learning into a single pipeline. In order to do that, <strong>nntrf</strong> must be defined as a pipeline step, as follows. Basically, it defines <strong>train</strong> and <strong>retrafo</strong> methods. The former, trains the neural networks and stores the hidden layer weights, the latter applies the transformation on a dataset. <strong>pSS</strong> is used to define the main <strong>nntrf</strong> hyper-parameters. The piece of code below can just be copied for use in other scripts.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cpo_nntrf =<span class="st"> </span><span class="kw">makeCPO</span>(<span class="st">&quot;nntrfCPO&quot;</span>,  
                        <span class="co"># Here, the hyper-parameters of nntrf are defined</span>
                        <span class="kw">pSS</span>(<span class="dt">repetitions =</span> <span class="dv">1</span> <span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
-                           <span class="dt">xavier_ini =</span> <span class="ot">FALSE</span> <span class="op">:</span><span class="st"> </span>logical,
-                           <span class="dt">orthog_ini =</span> <span class="ot">FALSE</span> <span class="op">:</span><span class="st"> </span>logical,
                            size<span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
                            <span class="dt">maxit =</span> <span class="dv">100</span> <span class="op">:</span><span class="st"> </span>integer[<span class="dv">1</span>, ],
                            <span class="dt">use_sigmoid =</span> <span class="ot">FALSE</span><span class="op">:</span><span class="st"> </span>logical),
                        <span class="dt">dataformat =</span> <span class="st">&quot;numeric&quot;</span>,
                        <span class="dt">cpo.train =</span> <span class="cf">function</span>(data, target, 
-                                            repetitions, xavier_ini, orthog_ini, 
+                                            repetitions, 
                                             size, maxit, use_sigmoid) {
                          data_and_class &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">as.data.frame</span>(data), <span class="dt">class=</span>target[[<span class="dv">1</span>]])
                          nnpo &lt;-<span class="st"> </span><span class="kw">nntrf</span>(<span class="dt">repetitions=</span>repetitions,
-                                       <span class="dt">xavier_ini=</span>xavier_ini,
-                                       <span class="dt">orthog_ini=</span>orthog_ini,
                                        <span class="dt">formula=</span>class<span class="op">~</span>.,
                                        <span class="dt">data=</span>data_and_class,
                                        <span class="dt">size=</span>size, <span class="dt">maxit=</span>maxit, <span class="dt">trace=</span><span class="ot">FALSE</span>)
                        },
                        <span class="dt">cpo.retrafo =</span> <span class="cf">function</span>(data, control, 
-                                              repetitions, xavier_ini, orthog_ini, 
+                                              repetitions, 
                                               size, maxit, use_sigmoid) {
                        
                          trf_x &lt;-<span class="st"> </span>control<span class="op">$</span><span class="kw">trf</span>(<span class="dt">x=</span>data,<span class="dt">use_sigmoid=</span>use_sigmoid)
@@ -163,8 +153,7 @@ knn_lrn &lt;-<span class="st"> </span><span class="kw">makeLearner</span>(<span 
 knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span>knn_lrn
 <span class="co"># Just in case, we fix the values of the hyper-parameters that we do not require to optimize</span>
 <span class="co"># (not necessary, because they already have default values. Just to make their values explicit)</span>
-knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">1</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>, 
-                          <span class="dt">nntrfCPO.xavier_ini=</span><span class="ot">FALSE</span>, <span class="dt">nntrfCPO.orthog_ini=</span><span class="ot">FALSE</span>,
+knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">1</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>,
                           <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>)
 
 <span class="co"># However, we are going to use 2 repetitions here, instead of 1 (the default):</span>
@@ -185,44 +174,43 @@ cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span c
 error_knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf_tune, doughnut_task, outer_inst, 
                                  <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
                                  <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_nntrf_tune, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_nntrf_tune.rda&quot;</span>)
+<span class="co">#save(error_knn_nntrf_tune, file=&quot;../inst/extdata/error_knn_nntrf_tune.rda&quot;)</span>
 }</code></pre></div>
-<p>Errors and optimal hyper-parameters are as follows (the 3-fold inner hyper-parameter tuning crossvalidation accuracy is also shown in <strong>acc.test.mean</strong> ).</p>
+<p>Errors and optimal hyper-parameters are as follows (the 3-fold inner hyper-parameter tuning crossvalidation accuracy is also shown in <strong>acc.test.mean</strong> ). <strong>nntrfCPO.size</strong> is the number of hidden neurons selected by hyper-parameter tuning. Despite the optimal value is 2 (the actual dougnut is defined in two dimensions only), hyper-parameter tuning is not able to reducide dimensionality that much in this case. But it will be shown (later) that the accuracy obtained by <strong>nntrf+knn</strong> is good.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>extract)
 <span class="co">#&gt; [[1]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=6; nntrfCPO.size=9</span>
-<span class="co">#&gt; acc.test.mean=0.9596539</span>
+<span class="co">#&gt; Op. pars: k=4; nntrfCPO.size=10</span>
+<span class="co">#&gt; acc.test.mean=0.9602523</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[2]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=7; nntrfCPO.size=9</span>
-<span class="co">#&gt; acc.test.mean=0.9588959</span>
+<span class="co">#&gt; Op. pars: k=4; nntrfCPO.size=8</span>
+<span class="co">#&gt; acc.test.mean=0.9631010</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[3]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=7; nntrfCPO.size=6</span>
-<span class="co">#&gt; acc.test.mean=0.9611513</span></code></pre></div>
-<p>And the final outer 3-fold crossvalition accuracy is displayed below. Please, note that this <strong>acc.test.mean</strong> corresponds to the outer 3-fold crossvalidation, while the <strong>acc.test.mean</strong> above, corresponds to the inner 3-fold crossvalidation accuracy (computed during hyper-parameter tuning).</p>
+<span class="co">#&gt; Op. pars: k=3; nntrfCPO.size=5</span>
+<span class="co">#&gt; acc.test.mean=0.9708971</span></code></pre></div>
+<p>The final outer 3-fold crossvalition accuracy is displayed in the next cell. Please, note that this <strong>acc.test.mean</strong> corresponds to the outer 3-fold crossvalidation, while the <strong>acc.test.mean</strong> above, corresponds to the inner 3-fold crossvalidation accuracy (computed during hyper-parameter tuning).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_tune<span class="op">$</span>aggr)
 <span class="co">#&gt; acc.test.mean </span>
-<span class="co">#&gt;     0.9365014</span></code></pre></div>
+<span class="co">#&gt;     0.9655999</span></code></pre></div>
 <p>Although not required, mlr allows to display the results of the different hyper-parameter values, sorted by the <strong>inner</strong> 3-fold crossvalidation accuracy, from best to worse.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(dplyr)
 results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_nntrf_tune)
 <span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
 <span class="co">#&gt;   k nntrfCPO.size acc.test.mean iteration exec.time nested_cv_run</span>
-<span class="co">#&gt; 1 7             6     0.9611513        42     3.464             3</span>
-<span class="co">#&gt; 2 6             9     0.9596539        62     4.511             1</span>
-<span class="co">#&gt; 3 6             5     0.9595025        34     3.368             1</span>
-<span class="co">#&gt; 4 7             9     0.9588959        63     4.742             2</span>
-<span class="co">#&gt; 5 5             7     0.9576958        47     3.398             2</span>
-<span class="co">#&gt; 6 5             7     0.9563521        47     4.273             3</span></code></pre></div>
+<span class="co">#&gt; 1 3             5     0.9708971        31     2.821             3</span>
+<span class="co">#&gt; 2 7             4     0.9668467        28     2.604             3</span>
+<span class="co">#&gt; 3 4             8     0.9631010        53     4.002             2</span>
+<span class="co">#&gt; 4 7             8     0.9610013        56     3.876             2</span>
+<span class="co">#&gt; 5 4            10     0.9602523        67     4.363             1</span>
+<span class="co">#&gt; 6 5             8     0.9601016        54     4.108             2</span></code></pre></div>
 <p>We can also check directly what would happen with only 4 neurons (and 5 neighbors).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;classif.fnn&quot;</span>)
 
 knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">2</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>,
-                          <span class="dt">nntrfCPO.xavier_ini=</span><span class="ot">FALSE</span>, <span class="dt">nntrfCPO.orthog_ini=</span><span class="ot">FALSE</span>,
                           <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>, <span class="dt">k=</span><span class="dv">5</span>, <span class="dt">nntrfCPO.size=</span><span class="dv">4</span>)
 
 <span class="kw">set.seed</span>(<span class="dv">0</span>)
@@ -231,7 +219,7 @@ cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span c
 <span class="cf">if</span>(<span class="kw">file.exists</span>(cached)){<span class="kw">load</span>(cached)} <span class="cf">else</span> {
   error_knn_nntrf &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf, doughnut_task, outer_inst, <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
                             <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_nntrf, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_nntrf.rda&quot;</span>)
+<span class="co">#save(error_knn_nntrf, file=&quot;../inst/extdata/error_knn_nntrf.rda&quot;)</span>
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># First, the three evaluations of the outer 3-fold crossvalidation, one per fold:</span>
 <span class="kw">print</span>(error_knn_nntrf<span class="op">$</span>measures.test)
@@ -262,40 +250,40 @@ cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span c
 error_knn_pca_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_pca_tune, doughnut_task, outer_inst, 
                                <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
                                <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_pca_tune, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_pca_tune.rda&quot;</span>)
+<span class="co">#save(error_knn_pca_tune, file=&quot;../inst/extdata/error_knn_pca_tune.rda&quot;)</span>
 }</code></pre></div>
 <p>It can be seen below that while <strong>nntrf</strong> was able to get a high accuracy, <strong>PCA</strong> only gets to nearly 0.65. Also the number of components required by <strong>PCA</strong> is the maximum allowed (pca.rank=10)</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_pca_tune<span class="op">$</span>extract)
 <span class="co">#&gt; [[1]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=4; pca.rank=10</span>
-<span class="co">#&gt; acc.test.mean=0.6410671</span>
+<span class="co">#&gt; Op. pars: k=2; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6338697</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[2]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=4; pca.rank=10</span>
-<span class="co">#&gt; acc.test.mean=0.6402640</span>
+<span class="co">#&gt; Op. pars: k=6; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6401682</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[3]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=2; pca.rank=10</span>
-<span class="co">#&gt; acc.test.mean=0.6367183</span>
+<span class="co">#&gt; Op. pars: k=6; pca.rank=10</span>
+<span class="co">#&gt; acc.test.mean=0.6398140</span>
 <span class="kw">print</span>(error_knn_pca_tune<span class="op">$</span>aggr)
 <span class="co">#&gt; acc.test.mean </span>
-<span class="co">#&gt;     0.6422997</span>
+<span class="co">#&gt;     0.6384994</span>
 results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_pca_tune)
 <span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
 <span class="co">#&gt;   k pca.rank acc.test.mean iteration exec.time nested_cv_run</span>
-<span class="co">#&gt; 1 4       10     0.6410671        67     1.638             1</span>
-<span class="co">#&gt; 2 4       10     0.6402640        67     1.532             2</span>
-<span class="co">#&gt; 3 6       10     0.6396640        69     1.655             2</span>
-<span class="co">#&gt; 4 2       10     0.6389139        65     1.528             2</span>
-<span class="co">#&gt; 5 6       10     0.6374673        69     1.590             1</span>
-<span class="co">#&gt; 6 2       10     0.6367183        65     1.397             3</span></code></pre></div>
+<span class="co">#&gt; 1 6       10     0.6401682        69     1.880             2</span>
+<span class="co">#&gt; 2 6       10     0.6398140        69     1.760             3</span>
+<span class="co">#&gt; 3 4       10     0.6380138        67     1.634             3</span>
+<span class="co">#&gt; 4 4       10     0.6362675        67     1.763             2</span>
+<span class="co">#&gt; 5 2       10     0.6347687        65     1.762             2</span>
+<span class="co">#&gt; 6 2       10     0.6338697        65     1.475             1</span></code></pre></div>
 </div>
 <div id="hyper-parameter-tuning-with-just-knn" class="section level2">
 <h2>Hyper-parameter tuning with just KNN</h2>
-<p>For completeness sake, below are the results with, no pre-processing, just KNN (results are very similar to the ones with PCA):</p>
+<p>For completeness sake, below are the results with no pre-processing, just KNN (results are very similar to the ones with PCA):</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
 ps_knn &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>))
 
@@ -309,138 +297,26 @@ cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span c
 <span class="cf">if</span>(<span class="kw">file.exists</span>(cached)){<span class="kw">load</span>(cached)} <span class="cf">else</span> {
 error_knn_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_tune, doughnut_task, outer_inst, <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
                            <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_tune, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_tune.rda&quot;</span>)
+<span class="co">#save(error_knn_tune, file=&quot;../inst/extdata/error_knn_tune.rda&quot;)</span>
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_tune<span class="op">$</span>extract)
 <span class="co">#&gt; [[1]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=4</span>
-<span class="co">#&gt; acc.test.mean=0.6386676</span>
+<span class="co">#&gt; Op. pars: k=6</span>
+<span class="co">#&gt; acc.test.mean=0.6362696</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[2]]</span>
 <span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=2</span>
-<span class="co">#&gt; acc.test.mean=0.6377138</span>
+<span class="co">#&gt; Op. pars: k=6</span>
+<span class="co">#&gt; acc.test.mean=0.6343180</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; [[3]]</span>
 <span class="co">#&gt; Tune result:</span>
 <span class="co">#&gt; Op. pars: k=4</span>
-<span class="co">#&gt; acc.test.mean=0.6365698</span>
+<span class="co">#&gt; acc.test.mean=0.6336634</span>
 <span class="kw">print</span>(error_knn_tune<span class="op">$</span>aggr)
 <span class="co">#&gt; acc.test.mean </span>
-<span class="co">#&gt;     0.6389003</span>
-results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_tune)
-<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
-<span class="co">#&gt;   k acc.test.mean iteration exec.time nested_cv_run</span>
-<span class="co">#&gt; 1 4     0.6386676         4     1.406             1</span>
-<span class="co">#&gt; 2 2     0.6377138         2     1.132             2</span>
-<span class="co">#&gt; 3 4     0.6371137         4     1.273             2</span>
-<span class="co">#&gt; 4 4     0.6365698         4     1.288             3</span>
-<span class="co">#&gt; 5 2     0.6358180         2     1.125             3</span>
-<span class="co">#&gt; 6 6     0.6356136         6     1.451             2</span></code></pre></div>
-</div>
-<div id="nntrf-hyper-parameter-tuning-with-xavier-initialization" class="section level2">
-<h2>nntrf Hyper-parameter Tuning with Xavier initialization</h2>
-<p>Just for the record, let’s see results with Xavier initialization, instead of the standard nnet weight initialization.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># knn is the machine learning method. The knn available in the FNN package is used</span>
-knn_lrn &lt;-<span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;classif.fnn&quot;</span>)
-<span class="co"># Then, knn is combined with nntrf's preprocessing into a pipeline</span>
-knn_nntrf &lt;-<span class="st"> </span><span class="kw">cpo_nntrf</span>() <span class="op">%&gt;&gt;%</span><span class="st"> </span>knn_lrn
-<span class="co"># Just in case, we fix the values of the hyper-parameters that we do not require to optimize</span>
-<span class="co"># (not necessary, because they already have default values. Just to make their values explicit)</span>
-knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">1</span>, <span class="dt">nntrfCPO.maxit=</span><span class="dv">100</span>, 
-                          <span class="dt">nntrfCPO.xavier_ini=</span><span class="ot">FALSE</span>, <span class="dt">nntrfCPO.orthog_ini=</span><span class="ot">FALSE</span>,
-                          <span class="dt">nntrfCPO.use_sigmoid=</span><span class="ot">FALSE</span>)
-
-<span class="co"># However, we are going to use 2 repetitions here, instead of 1 (the default):</span>
-
-knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">2</span>, <span class="dt">nntrfCPO.xavier_ini=</span><span class="ot">TRUE</span>,
-                          <span class="dt">nntrfCPO.orthog_ini=</span><span class="ot">FALSE</span>)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ps &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>),
-                   <span class="kw">makeDiscreteParam</span>(<span class="st">&quot;nntrfCPO.size&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">10</span>)
-)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_nntrf, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps, 
-                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">0</span>)
-<span class="co"># Please, note that in order to save time, results have been precomputed</span>
-cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;error_knn_nntrf_xavier_tune.rda&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;nntrf&quot;</span>)
-<span class="cf">if</span>(<span class="kw">file.exists</span>(cached)) {<span class="kw">load</span>(cached)} <span class="cf">else</span> {
-error_knn_nntrf_xavier_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf_tune, doughnut_task, outer_inst, 
-                                 <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
-                                 <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_nntrf_xavier_tune, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_nntrf_xavier_tune.rda&quot;</span>)
-}</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_xavier_tune<span class="op">$</span>extract)
-<span class="co">#&gt; [[1]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=6; nntrfCPO.size=4</span>
-<span class="co">#&gt; acc.test.mean=0.9689512</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [[2]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=5; nntrfCPO.size=4</span>
-<span class="co">#&gt; acc.test.mean=0.9641515</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [[3]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=5; nntrfCPO.size=5</span>
-<span class="co">#&gt; acc.test.mean=0.9677468</span></code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_xavier_tune<span class="op">$</span>aggr)
-<span class="co">#&gt; acc.test.mean </span>
-<span class="co">#&gt;     0.8354942</span></code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(dplyr)
-results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_nntrf_xavier_tune)
-<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
-<span class="co">#&gt;   k nntrfCPO.size acc.test.mean iteration exec.time nested_cv_run</span>
-<span class="co">#&gt; 1 6             4     0.9689512        27     2.462             1</span>
-<span class="co">#&gt; 2 5             5     0.9677468        33     2.792             3</span>
-<span class="co">#&gt; 3 4             4     0.9671467        25     2.569             3</span>
-<span class="co">#&gt; 4 6             3     0.9667004        20     2.005             1</span>
-<span class="co">#&gt; 5 7             5     0.9652004        35     2.997             1</span>
-<span class="co">#&gt; 6 5             5     0.9643040        33     2.491             1</span></code></pre></div>
-<p>And now Xavier + Orthogonal initialization.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn_nntrf &lt;-<span class="st"> </span><span class="kw">setHyperPars</span>(knn_nntrf, <span class="dt">nntrfCPO.repetitions=</span><span class="dv">2</span>, 
-                          <span class="dt">nntrfCPO.xavier_ini=</span><span class="ot">TRUE</span>,
-                          <span class="dt">nntrfCPO.orthog_ini=</span><span class="ot">TRUE</span>)
-knn_nntrf_tune &lt;-<span class="st"> </span><span class="kw">makeTuneWrapper</span>(knn_nntrf, <span class="dt">resampling =</span> inner_desc, <span class="dt">par.set =</span> ps, 
-                                     <span class="dt">control =</span> control_grid, <span class="dt">measures =</span> <span class="kw">list</span>(acc), <span class="dt">show.info =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">0</span>)
-<span class="co"># Please, note that in order to save time, results have been precomputed</span>
-cached &lt;-<span class="st"> </span><span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;error_knn_nntrf_xavier_orthog_tune.rda&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;nntrf&quot;</span>)
-<span class="cf">if</span>(<span class="kw">file.exists</span>(cached)) {<span class="kw">load</span>(cached)} <span class="cf">else</span> {
-error_knn_nntrf_xavier_tune &lt;-<span class="st"> </span><span class="kw">resample</span>(knn_nntrf_tune, doughnut_task, outer_inst, 
-                                 <span class="dt">measures =</span> <span class="kw">list</span>(acc), 
-                                 <span class="dt">extract =</span> getTuneResult, <span class="dt">show.info =</span>  <span class="ot">FALSE</span>)
-<span class="kw">save</span>(error_knn_nntrf_xavier_tune, <span class="dt">file=</span><span class="st">&quot;../inst/extdata/error_knn_nntrf_xavier_orthog_tune.rda&quot;</span>)
-}</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(error_knn_nntrf_xavier_tune<span class="op">$</span>extract)
-<span class="co">#&gt; [[1]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=7; nntrfCPO.size=9</span>
-<span class="co">#&gt; acc.test.mean=0.9616023</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [[2]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=7; nntrfCPO.size=4</span>
-<span class="co">#&gt; acc.test.mean=0.9599553</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; [[3]]</span>
-<span class="co">#&gt; Tune result:</span>
-<span class="co">#&gt; Op. pars: k=6; nntrfCPO.size=6</span>
-<span class="co">#&gt; acc.test.mean=0.9594959</span>
-<span class="kw">print</span>(error_knn_nntrf_xavier_tune<span class="op">$</span>aggr)
-<span class="co">#&gt; acc.test.mean </span>
-<span class="co">#&gt;     0.9542012</span>
-<span class="kw">library</span>(dplyr)
-results_hyper &lt;-<span class="st"> </span><span class="kw">generateHyperParsEffectData</span>(error_knn_nntrf_xavier_tune)
-<span class="kw">head</span>(<span class="kw">arrange</span>(results_hyper<span class="op">$</span>data, <span class="op">-</span>acc.test.mean))
-<span class="co">#&gt;   k nntrfCPO.size acc.test.mean iteration exec.time nested_cv_run</span>
-<span class="co">#&gt; 1 7             9     0.9616023        63     4.492             1</span>
-<span class="co">#&gt; 2 3             7     0.9610027        45     3.587             1</span>
-<span class="co">#&gt; 3 7             4     0.9599553        28     2.767             2</span>
-<span class="co">#&gt; 4 6             6     0.9594959        41     3.468             3</span>
-<span class="co">#&gt; 5 5             7     0.9590487        47     3.654             1</span>
-<span class="co">#&gt; 6 5             8     0.9587459        54     4.104             3</span></code></pre></div>
+<span class="co">#&gt;     0.6383997</span></code></pre></div>
 </div>
 </div>
 

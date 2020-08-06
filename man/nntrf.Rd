@@ -4,8 +4,7 @@
 \alias{nntrf}
 \title{{nntrf: a supervised transformation function based on neural networks (Neural Net based Transformations)}}
 \usage{
-nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL,
-  xavier_ini = FALSE, orthog_ini = FALSE, ...)
+nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL, ...)
 }
 \arguments{
 \item{keep_nn}{(default TRUE) Keep NN model. In most cases, the actual NN and associated results obtained by nnet is not required}
@@ -14,26 +13,22 @@ nntrf(keep_nn = TRUE, repetitions = 1, random_seed = NULL,
 
 \item{random_seed}{(default NULL)}
 
-\item{xavier_ini}{(default FALSE) use Xavier initialization for sigmoid (https://mnsgrg.com/2017/12/21/xavier-initialization/)}
-
-\item{orthog_ini}{(default FALSE) only with Xavier initialization. Use orthogonal vectors to initialize hidden layer}
-
 \item{...}{See \code{\link{nnet}} params. Most important: \itemize{
 \item formula 
-\item data :dataframe with data. The last column \strong{must} be the dependent variable and \strong{must} use factors for classification problems. The input/independent variables \strong{must} contain numeric values only.
+\item data :dataframe with data. The last column \strong{must} be the dependent variable. The dependent variable \strong{must} be a factor for classification problems and numeric for regression problems. The input/independent variables \strong{must} contain numeric values only.
 \item size :number of units in the hidden layer.  
-\item maxit :steps is the number of iterations of the net.
+\item maxit : the number of iterations of the net.
 }}
 }
 \value{
 list of: \itemize{
   \item trf: a function that transforms the input dataset using the weights of the hidden layer. This function has three arguments:
     \itemize{
-      \item x: the input numeric \strong{matrix} to be transformed
+      \item x: the input numeric \strong{matrix} or \strong{data.frame} to be transformed. Only numeric values.
       \item use_sigmoid (default TRUE): Whether the sigmoid function should be used for the transformation. nnet uses the sigmoid in the hidden layer, but in some cases better results could be obtained with use_sigmoid=FALSE.
-      \item norm (default FALSE): If TRUE, this function's output is normalized (scaled) to range 0-1
+      \item norm (default FALSE): If TRUE, this function's output is normalized (scaled) to range 0-1.
     }
-  \item mod: values returned by nnet 
+  \item mod: values returned by nnet (this includes the neural network trained by nnet). If keep_nn=FALSE, then NULL is returned here. 
   \item matrix1: weights of hidden layer 
   \item matrix2: weights of output layer 
   }
@@ -41,13 +36,18 @@ list of: \itemize{
 \description{
 {This function transforms a dataset into the activations of the neurons of the hidden layer of a neural network. 
 This is done by training a neural network and then computing the activations of the neural network for each input pattern. 
-AT THIS MOMENT, NNTRF WORKS ONLY FOR CLASSIFICATION PROBLEMS.
+It uses the \strong{nnet} package under the hood.
 }
 }
 \examples{
 data("doughnutRandRotated")
 rd <- doughnutRandRotated
+
+# Make sure it is a classification problem
+rd[,ncol(rd)] <- as.factor(rd[,ncol(rd)])
 n <- nrow(rd)
+
+# Split data into training and test
 set.seed(0)
 training_index <- sample(1:n, round(0.6*n))
 train <- rd[training_index,]
@@ -56,13 +56,19 @@ x_train <- train[,-ncol(train)]
 y_train <- train[,ncol(train)]
 x_test <- test[,-ncol(test)]
 y_test <- test[,ncol(test)]
+
+# Train nntrf transformation
 set.seed(0)
 nnpo <- nntrf(formula=V11~.,
               data=train,
               size=4, maxit=50, trace=TRUE)
+              
+# Apply nntrf transformation to the train and test splits               
 trf_x_train <- nnpo$trf(x=x_train, use_sigmoid=FALSE)
-trf_x_test <- nnpo$trf(x=x_test, use_sigmoid=FALSE)               
-outputs <- FNN::knn(trf_x_train, trf_x_test, factor(y_train))
+trf_x_test <- nnpo$trf(x=x_test, use_sigmoid=FALSE)      
+
+# Compute the success rate of KNN on the transformed feature space                   
+outputs <- FNN::knn(trf_x_train, trf_x_test, y_train)
 success <- mean(outputs == y_test)
 print(success)
 }
