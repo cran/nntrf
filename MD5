@@ -1,4 +1,4 @@
-030cdc34d94252404ace0a0a0a8b95ca *DESCRIPTION
+f258977a11e72f664c0bd18de69362b0 *DESCRIPTION
 0cad38a23e1bd2946d47c56abf1ed54d *NAMESPACE
 256ce77b5dce24c7c7d64dc2f4667079 *NEWS.md
 65d7343fa01ecc1fcbe06a5d1403b14c *R/nntrf.R
@@ -10,13 +10,13 @@ da5811c371554579a53dad89a789fd02 *data/doughnutRand.rda
 ff30fdf4587d017d1d7275a11b56ead2 *data/doughnutRandRotated.rda
 eaf7944af00244e8a136edcb55deab47 *inst/doc/nntrf.R
 212aa7dac84627246d90bf0b5f0b8c79 *inst/doc/nntrf.Rmd
-ac42a42dfc2875dea8e61472d1b1652c *inst/doc/nntrf.html
+d822498682a871ae2dda363de09413e1 *inst/doc/nntrf.html
 6fd522882899e22b0be3a89b5da99bc2 *inst/doc/nntrf_regresion.R
-c8b3d6d89b56e10459c5e704a161650a *inst/doc/nntrf_regresion.Rmd
-763449c7feb95bd4285ca3946d4e117b *inst/doc/nntrf_regresion.html
-b353b571c211c71d8e75b53f39790514 *inst/doc/nntrf_tuning.R
-4eab63172ad53293770cf7555d98b9e8 *inst/doc/nntrf_tuning.Rmd
-e66171d78a24caecdf2a2de4677bb4b7 *inst/doc/nntrf_tuning.html
+6f11752c069758501657ebb8ad2e4837 *inst/doc/nntrf_regresion.Rmd
+b15bf929cd90299e83c98e91f84d0421 *inst/doc/nntrf_regresion.html
+16eaa86d0bb8da80f71619a3f0e87e99 *inst/doc/nntrf_tuning.R
+7d3937c1b87c796474dc3d823ca19864 *inst/doc/nntrf_tuning.Rmd
+2c098f42a40fe9b4896051f4f152fd38 *inst/doc/nntrf_tuning.html
 9faf995c5be288a1dc497fcd49f53004 *inst/extdata/error_knn_nntrf.rda
 3edf3c363df261ae2c368e759fac0bfe *inst/extdata/error_knn_nntrf_regression.rda
 6f3c29094bf65923f28d781a89d8da18 *inst/extdata/error_knn_nntrf_tune.rda
@@ -32,6 +32,6 @@ a8fe4d4c08aa9c31c9a7d97c88060756 *man/doughnutRand.Rd
 939278f557e3ee8c2dfd437db1445f82 *man/nntrf_iris.Rd
 212aa7dac84627246d90bf0b5f0b8c79 *vignettes/nntrf.Rmd
 068eb77da62c6d39e8f79485bb32c220 *vignettes/nntrf.md
-c8b3d6d89b56e10459c5e704a161650a *vignettes/nntrf_regresion.Rmd
-4eab63172ad53293770cf7555d98b9e8 *vignettes/nntrf_tuning.Rmd
+6f11752c069758501657ebb8ad2e4837 *vignettes/nntrf_regresion.Rmd
+7d3937c1b87c796474dc3d823ca19864 *vignettes/nntrf_tuning.Rmd
 1e61b685e9428d5eee6c738fc159f7c8 *vignettes/nntrf_tuning.md

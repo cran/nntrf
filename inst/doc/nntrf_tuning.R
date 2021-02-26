@@ -12,7 +12,6 @@ library(FNN)
 
 ## ------------------------------------------------------------------------
 data("doughnutRandRotated")
-
 doughnut_task <- makeClassifTask(data = doughnutRandRotated, target = "V11")
 control_grid <- makeTuneControlGrid()
 inner_desc <- makeResampleDesc("CV", iter=3)

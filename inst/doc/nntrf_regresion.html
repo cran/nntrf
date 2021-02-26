@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ricardo Aler" />
 
-<meta name="date" content="2020-08-06" />
+<meta name="date" content="2021-02-26" />
 
 <title>nntrf for regression</title>
 
@@ -95,7 +95,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">nntrf for regression</h1>
 <h4 class="author">Ricardo Aler</h4>
-<h4 class="date">2020-08-06</h4>
+<h4 class="date">2021-02-26</h4>
 
 
 
@@ -305,7 +305,7 @@ error_knn_pca_tune &lt;-<span class="st"> </span><span class="kw">resample</span
 </div>
 <div id="hyper-parameter-tuning-with-just-knn" class="section level2">
 <h2>Hyper-parameter tuning with just KNN</h2>
-<p>For completeness sake, below are the results with, no pre-processing, just KNN (results are better than those of <strong>PCA</strong> with only 5 components) but worse than <strong>nntrf</strong>).</p>
+<p>For completeness sake, below are the results with no pre-processing, just KNN (results are better than those of <strong>PCA</strong> with only 5 components) but worse than <strong>nntrf</strong>).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ps_knn &lt;-<span class="st"> </span><span class="kw">makeParamSet</span>(<span class="kw">makeDiscreteParam</span>(<span class="st">&quot;k&quot;</span>, <span class="dt">values =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">7</span>))
 
 knn_lrn &lt;-<span class="st"> </span><span class="kw">makeLearner</span>(<span class="st">&quot;regr.fnn&quot;</span>)

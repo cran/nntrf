@@ -1,7 +1,7 @@
 Package: nntrf
 Title: Supervised Data Transformation by Means of Neural Network Hidden
         Layer
-Version: 0.1.3
+Version: 0.1.4
 Authors@R: c(person("Ricardo", "Aler", email = "ricardo.aler@uc3m.es", role = c("aut", "cre")),
               person("Jose", "Valls", email = "jvalls@inf.uc3m.es", role = c("aut")),
               person("Ines", "Galvan", email = "igalvan@inf.uc3m.es", role = c("aut")),
@@ -13,6 +13,7 @@ Description: A supervised transformation of datasets is performed.
     In fact, it takes advantage of the change of representation provided by the hidden layer of a neural network.
     This can be useful as data pre-processing for Machine Learning methods in general, specially for those that do not work well with many irrelevant or redundant features.
     It uses the nnet package under the hood.
+    Valls, J.M., Aler, R., Galvan, I.M., and Camacho, D. (2021). "Supervised data transformation and dimensionality reduction with a 3-layer multi-layer perceptron for classification problems". <doi:10.1007/s12652-020-02841-y>
     Rumelhart, D.E., Hinton, G.E. and Williams, R.J. (1986) "Learning representations by back-propagating errors" <doi:10.1038/323533a0>.
 Depends: R (>= 3.2.4),
 Imports: nnet, NeuralNetTools, FNN, pracma
@@ -24,11 +25,11 @@ Encoding: UTF-8
 RoxygenNote: 5.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-08-06 16:13:52 UTC; aler
+Packaged: 2021-02-26 09:02:18 UTC; aler
 Author: Ricardo Aler [aut, cre],
   Jose Valls [aut],
   Ines Galvan [aut],
   David Camacho [aut]
 Maintainer: Ricardo Aler <ricardo.aler@uc3m.es>
 Repository: CRAN
-Date/Publication: 2020-08-06 23:00:07 UTC
+Date/Publication: 2021-02-26 09:50:05 UTC

@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ricardo Aler" />
 
-<meta name="date" content="2020-08-06" />
+<meta name="date" content="2021-02-26" />
 
 <title>nntrf hyper-parameter tuning</title>
 
@@ -95,7 +95,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">nntrf hyper-parameter tuning</h1>
 <h4 class="author">Ricardo Aler</h4>
-<h4 class="date">2020-08-06</h4>
+<h4 class="date">2021-02-26</h4>
 
 
 
@@ -115,7 +115,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>Machine learning pipelines usually contain two kinds of steps: pre-processing and classifier/regressor. Both kinds of steps contain hyper-parameters and they are optimized together. <strong>nntrf</strong> is a preprocessing step. The classifier method that will be used after preprocessing is KNN, whose main hyper-parameter is the number of neighbors (<strong>k</strong>). Hyper-parameter tuning could be programmed from scratch, but it is more efficient to use the procedures already available in machine learning packages such as <a href="https://mlr.mlr-org.com/">mlr</a> or Caret. In this case, <strong>mlr</strong> will be used. Code to do that is described below.</p>
 <p>The next piece of code has nothing to do with <strong>nntrf</strong>. It just establishes that the doughnutRandRotated dataset is going to be used (with target variable “V11”), that grid search is going to be used for hyper-parameter tuning, that an external 3-fold crossvalidation is going to be used to evaluate models, while an inner 3-fold crossvalidation is going to be used for hyper-parameter tuning.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(<span class="st">&quot;doughnutRandRotated&quot;</span>)
-
 doughnut_task &lt;-<span class="st"> </span><span class="kw">makeClassifTask</span>(<span class="dt">data =</span> doughnutRandRotated, <span class="dt">target =</span> <span class="st">&quot;V11&quot;</span>)
 control_grid &lt;-<span class="st"> </span><span class="kw">makeTuneControlGrid</span>()
 inner_desc &lt;-<span class="st"> </span><span class="kw">makeResampleDesc</span>(<span class="st">&quot;CV&quot;</span>, <span class="dt">iter=</span><span class="dv">3</span>)

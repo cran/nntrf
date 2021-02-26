@@ -270,7 +270,7 @@ print(error_knn_pca_tune$aggr)
 ```
 ## Hyper-parameter tuning with just KNN
 
-For completeness sake, below are the results with, no pre-processing, just KNN (results are better than those of **PCA** with only 5 components) but worse than **nntrf**).
+For completeness sake, below are the results with no pre-processing, just KNN (results are better than those of **PCA** with only 5 components) but worse than **nntrf**).
 
 ```{r}
 ps_knn <- makeParamSet(makeDiscreteParam("k", values = 1:7))
